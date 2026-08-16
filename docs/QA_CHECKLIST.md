@@ -1,4 +1,4 @@
-# Grid Disaster AI — QA Checklist
+# GridRescue AI — QA Checklist
 
 ## QA Status
 
@@ -76,4 +76,4 @@ Automated QA:
 
 ## Final Result
 
-PASS — Grid Disaster AI is ready for final documentation, publishing, and demo recording.
+**PASS — GridRescue AI is ready for final documentation, publishing, and demo recording.**

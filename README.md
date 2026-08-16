@@ -1,800 +1,380 @@
-# Grid Disaster AI
+G# GridRescue AI
 
 **Predict the cascade. Protect the critical. Restore the grid.**
 
-Grid Disaster AI is a human-governed, agentic emergency command center for cascading electrical-grid disasters.
+GridRescue AI is a human-governed, agentic emergency command center for cascading electrical-grid disasters. It combines deterministic grid-failure simulation, specialist AI agents, persistent incident memory, semantic vector retrieval, live database access through MCP, and a Recovery Commander LLM to support human operators during major grid emergencies without removing human control.
 
-The system combines deterministic grid-failure simulation, cascading-risk forecasting, specialist AI agents, live LLM advisory, critical-infrastructure prioritization, and human authorization to demonstrate how AI can support operators during a major grid emergency without removing human control.
-
-Grid Disaster AI is now being extended with **AWS serverless execution and CockroachDB persistent incident memory**, allowing the system to learn from prior simulated incidents and retrieve relevant historical decisions during future emergencies.
+For the CockroachDB × AWS Agentic Memory hackathon, GridRescue AI extends the original disaster-response simulation with an AWS-hosted agentic-memory backend. Historical incidents are stored in CockroachDB, embedded with Gemini, retrieved by semantic similarity using CockroachDB vector search, queried through the CockroachDB Cloud Managed MCP Server, and supplied to the Groq-powered Recovery Commander before a human operator authorizes recovery.
 
 ---
 
-## The Problem
+## Hackathon Integration Summary
 
-Large-scale grid failures rarely happen as isolated events.
+GridRescue AI currently integrates:
 
-A hurricane, transmission failure, generation loss, or overloaded substation can trigger secondary failures across:
+- **AWS Lambda** — serverless agent/memory API.
+- **CockroachDB persistent memory** — durable incident records and operational history.
+- **CockroachDB Distributed Vector Indexing** — `VECTOR(384)` incident embeddings with cosine-distance retrieval.
+- **CockroachDB Cloud Managed MCP Server** — live read-only access to incident data through the MCP `select_query` tool.
+- **Gemini `gemini-embedding-001`** — generates 384-dimensional incident/query embeddings.
+- **Groq `llama-3.3-70b-versatile`** — synthesizes the Recovery Commander advisory.
+- **Human authorization gate** — the AI recommends; a human operator retains final authority over recovery execution.
 
-* Electrical distribution
-* Hospitals
-* Water treatment
-* Communications
-* Emergency shelters
-* Transportation
-* Public safety infrastructure
+### Verified agentic-memory loop
 
-During these incidents, operators must rapidly answer several questions:
-
-* What is failing now?
-* What is likely to fail next?
-* Which critical facilities are most exposed?
-* Which failures could trigger additional cascading outages?
-* Where should repair crews be sent first?
-* Where should mobile generation be deployed?
-* What tradeoffs exist between grid stability and public safety?
-* Have similar incidents happened before?
-* What actions worked during those incidents?
-* Should the AI recommendation actually be executed?
-
-Grid Disaster AI brings those questions together in a single operational command-center simulation.
+```text
+Current disaster snapshot
+        |
+        v
+AWS Lambda
+        |
+        +--> Gemini embedding (384 dimensions)
+        |          |
+        |          v
+        |    CockroachDB VECTOR(384)
+        |          |
+        |          v
+        |    Semantic similarity retrieval
+        |          |
+        |          +--> Relevant historical incidents
+        |
+        +--> CockroachDB Managed MCP Server
+        |          |
+        |          +--> select_query --> live incident context
+        |
+        v
+Groq Recovery Commander
+        |
+        v
+Memory-informed recovery advisory
+        |
+        v
+Human authorization required
+```
 
 ---
 
-# Core Demo Scenario
+## Production Architecture
 
-The primary demonstration scenario is:
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Interactive grid/disaster visualization
+
+### Backend
+
+- AWS Lambda (Node.js)
+- CockroachDB Cloud
+- PostgreSQL-compatible `pg` driver
+- Model Context Protocol TypeScript SDK using `StreamableHTTPClientTransport`
+
+### AI services
+
+- **Gemini `gemini-embedding-001`** for 384-dimensional embeddings
+- **Groq `llama-3.3-70b-versatile`** for Recovery Commander generation
+
+### CockroachDB agentic-memory capabilities
+
+- Persistent incident table
+- `VECTOR(384)` embedding column
+- Cosine-distance semantic retrieval using `<=>`
+- Distributed vector index optimized for cosine similarity
+- CockroachDB Cloud Managed MCP Server
+- MCP `select_query` for live, read-only incident context
+
+---
+
+## How Agentic Memory Works
+
+GridRescue AI does not simply retrieve the latest incidents. It can retrieve incidents whose meaning is closest to the crisis currently unfolding.
+
+### 1. Store the incident
+
+When an incident is persisted, the AWS Lambda builds a textual representation of the disaster and requests a **384-dimensional embedding** from `gemini-embedding-001`. The Lambda verifies the vector length before inserting it into the CockroachDB `embedding VECTOR(384)` column along with the incident record.
+
+### 2. Retrieve relevant memories
+
+For a new crisis, Lambda generates another 384-dimensional embedding from the current scenario and performs cosine-distance retrieval:
+
+```sql
+ORDER BY embedding <=> $1::VECTOR
+LIMIT 5
+```
+
+The result includes a similarity score and returns semantically related historical incidents rather than relying only on chronological order.
+
+### 3. Query CockroachDB through MCP
+
+The Lambda connects to the **CockroachDB Cloud Managed MCP Server** using the official MCP TypeScript SDK and `StreamableHTTPClientTransport`.
+
+The MCP connection uses:
+
+- Bearer authentication from `COCKROACHDB_MCP_API_KEY`
+- cluster scoping through `mcp-cluster-id`
+- the server-advertised `select_query` tool
+
+The agent performs a read-only query against the application `incidents` table to provide current database context to the Recovery Commander.
+
+### 4. Generate the Recovery Commander advisory
+
+The Groq-powered Recovery Commander receives:
+
+1. the current grid snapshot,
+2. semantically similar historical incidents from CockroachDB vector retrieval, and
+3. live incident context retrieved through CockroachDB MCP.
+
+It then generates a structured recovery advisory including situation assessment, primary priority, recommended sequence, major trade-off, rationale, and the decision requiring human approval.
+
+### 5. Human authorization
+
+The LLM cannot directly execute recovery. GridRescue AI stops at the human authorization gate until the incident commander explicitly approves the coordinated recovery plan.
+
+---
+
+## Core Demo Scenario
+
+The primary demo scenario is:
 
 **Category 4 Hurricane — Catastrophic Severity — Night**
 
 The simulation progresses through:
 
-**MONITORING → DISASTER → CASCADE → CRITICAL INFRASTRUCTURE AT RISK → AI COORDINATION → AGENT DISAGREEMENT → RECOVERY COMMANDER ADVISORY → HUMAN AUTHORIZATION → RECOVERY → STABILIZED**
+**MONITORING → DISASTER → CASCADE → CRITICAL INFRASTRUCTURE AT RISK → AI COORDINATION → AGENT DISAGREEMENT → MEMORY-INFORMED RECOVERY COMMANDER → HUMAN AUTHORIZATION → RECOVERY → STABILIZED**
 
-The system deliberately creates conflicting operational priorities so that the AI agents must expose tradeoffs rather than simply produce identical recommendations.
-
----
-
-# Command Center
-
-The Command Center provides a real-time operational overview of the simulated electrical grid.
-
-Key indicators include:
-
-* Grid Stability
-* Customers Without Power
-* Critical Facilities at Risk
-* Estimated Restoration Time
-* Cascade Probability
-* Repair Crews Available
-* Mobile Generators Available
-* Highest-Risk Facility
-* Cascading Failure Forecast
-* Lives and Infrastructure at Immediate Risk
-
-A representative hurricane simulation can move from:
-
-### Normal Operations
-
-* Grid Stability: 96%
-* Customers Without Power: 0
-* Critical Facilities at Risk: 0
-* Cascade Probability: 2%
-
-to approximately:
-
-### Major Grid Emergency
-
-* Grid Stability: 46%
-* Customers Without Power: 462,840
-* Critical Facilities at Risk: 8
-* Cascade Probability: 81%
-* Estimated Restoration: 26–34 hours
-
-Following an authorized recovery operation, the system progresses toward:
-
-**STABILIZED / RESOLVED**
-
-with critical facilities protected and cascade probability returning to safe levels.
+The scenario deliberately creates competing operational priorities so the specialist agents expose meaningful trade-offs rather than identical recommendations.
 
 ---
 
-# Cascading Failure Forecast
+## Multi-Agent Decision System
 
-Grid Disaster AI forecasts secondary failures across three operational windows:
+### Grid Stability Agent
 
-* **NOW**
-* **NEXT 15 MINUTES**
-* **NEXT 60 MINUTES**
+Focuses on preventing broader grid collapse, transmission stability, and load shedding.
 
-Forecast information can include:
+### Critical Infrastructure Agent
 
-* Grid asset
-* Failure probability
-* Estimated time to failure
-* Population impact
-* Critical dependencies
-* Risk severity
-* Recommended operational response
+Prioritizes essential services such as hospitals, water treatment, and emergency shelters.
 
-Example high-risk assets include:
+### Public Safety Agent
 
-* East Junction
-* Metro Distribution Hub
-* North Water Treatment Plant
-* Saint Anne Medical Center
+Evaluates population exposure, community impact, and emergency-service dependencies.
 
-This allows the system to focus not only on what has already failed, but on **what is likely to fail next**.
+### Recovery Commander
 
----
+Reconciles the specialist recommendations and augments them with historical incident memory and MCP-retrieved database context.
 
-# Lives and Infrastructure at Immediate Risk
+The flow is:
 
-Critical infrastructure is dynamically ranked during an active disaster.
-
-Representative facilities include:
-
-* Saint Anne Medical Center
-* North Water Treatment Plant
-* Metro Communications Hub
-* Children's Medical Center
-* Riverside Emergency Shelter
-* Regional Trauma Hospital
-
-Each facility can be evaluated according to factors such as:
-
-* Current electrical status
-* Grid dependency
-* Population served
-* Backup-power availability
-* Predicted failure risk
-* Restoration priority
-
-When the incident is stabilized, the active-risk panel clears and reports that critical infrastructure is protected.
+```text
+Specialist agents
+      |
+      v
+Current incident snapshot
+      |
+      +--> CockroachDB semantic memory
+      +--> CockroachDB MCP context
+      |
+      v
+Groq Recovery Commander
+      |
+      v
+Human-reviewed advisory
+```
 
 ---
 
-# Grid Network
+## Human-Governed AI
 
-The Grid Network provides an interactive visualization of generation assets, substations, distribution infrastructure, and critical facilities.
-
-Representative assets include:
-
-### Generation
-
-* North Ridge Generation
-* Harbor Gas Plant
-
-### Transmission and Distribution
-
-* Central Substation
-* East Junction
-* West Valley
-* Riverbend
-* Metro Distribution Hub
-* Coastal Transfer Station
-
-### Critical Infrastructure
-
-* Hospitals
-* Water treatment facilities
-* Communications infrastructure
-* Emergency shelters
-
-Asset states include:
-
-* Operational
-* Stressed
-* Overloaded
-* Failed
-* Protected
-* Restoring
-* Restored
-
----
-
-## Grid Filters
-
-Operators can filter the network by:
-
-* ALL
-* FAILED
-* AT RISK
-* CRITICAL
-* RESTORED
-
-Filtering affects visualization only and does not alter the underlying simulation state.
-
----
-
-## Interactive Asset Details
-
-Selecting an asset displays operational information including:
-
-* Current status
-* Capacity
-* Current load
-* Population served
-* Dependencies
-* Risk score
-* Predicted failure status
-* Recommended response
-
----
-
-# Multi-Agent Decision System
-
-Grid Disaster AI uses multiple specialist decision perspectives rather than relying on a single AI recommendation.
-
-This allows operational conflicts to remain visible.
-
-## Grid Stability Agent
-
-Focuses on preventing broader grid collapse.
-
-Its priorities include:
-
-* Transmission stability
-* Generation balance
-* Load shedding
-* Cascade prevention
-* Isolation of damaged infrastructure
-
----
-
-## Critical Infrastructure Agent
-
-Prioritizes essential services including:
-
-* Hospitals
-* Water treatment
-* Communications
-* Emergency shelters
-* Other life-safety infrastructure
-
----
-
-## Public Safety Agent
-
-Evaluates:
-
-* Population exposure
-* Community impact
-* Emergency-service dependencies
-* Potential life-safety consequences
-
----
-
-## Repair and Resources Agent
-
-Evaluates operational constraints including:
-
-* Available repair crews
-* Mobile generators
-* Repair priorities
-* Travel and deployment requirements
-* Resource limitations
-
----
-
-## Recovery Commander
-
-The Recovery Commander reconciles conflicting specialist recommendations into a coordinated recovery strategy.
-
-The specialist agents are intentionally allowed to disagree.
-
-For example:
-
-**Grid Stability Agent**
-
-may recommend isolating a damaged transmission corridor immediately.
-
-while:
-
-**Critical Infrastructure Agent**
-
-may recommend keeping that corridor temporarily energized because it is still supplying a hospital.
-
-The Recovery Commander must surface this conflict and recommend a safe operational compromise.
-
----
-
-# Live LLM Recovery Advisory
-
-During the AI Coordination phase, Grid Disaster AI can request a live LLM-generated Recovery Commander advisory.
-
-The advisory interface clearly identifies the recommendation as:
-
-**LIVE RECOVERY COMMANDER ADVISORY**
-
-**AI-GENERATED ADVISORY — HUMAN AUTHORIZATION REQUIRED**
-
-The advisory can synthesize:
-
-1. Situation Assessment
-2. Primary Priority
-3. Recommended Sequence
-4. Major Tradeoff
-5. Infrastructure Risk
-6. Resource Allocation
-7. Why This Plan
-8. Human Decision Required
-
-The LLM recommendation is advisory only.
-
-It cannot directly execute recovery actions.
-
----
-
-# Human-Governed AI
-
-Grid Disaster AI is intentionally designed around **human-in-the-loop control**.
+GridRescue AI is intentionally designed around **human-in-the-loop control**.
 
 Before recovery begins, the system reaches:
 
 **AWAITING HUMAN AUTHORIZATION**
 
-The incident commander must explicitly approve the proposed recovery strategy before execution can continue.
-
-The design principle is:
+The incident commander must explicitly approve the proposed strategy before execution can continue.
 
 > **AI can analyze, predict, remember, coordinate, and recommend — but accountable human operators retain final authority.**
 
-The AI cannot bypass this authorization gate.
-
 ---
 
-# Persistent Incident Memory
+## AWS Lambda Environment Variables
 
-A major extension of Grid Disaster AI is the addition of **persistent incident memory using CockroachDB**.
+Configure these variables in the Lambda function. Never commit real secrets to GitHub.
 
-Rather than treating every emergency as an isolated event, the system is being designed to retain structured information from previous incidents.
+```env
+# Direct CockroachDB application connection
+DATABASE_URL=postgresql://...
 
-Persistent memory can include:
+# CockroachDB Cloud Managed MCP Server
+COCKROACHDB_MCP_URL=https://cockroachlabs.cloud/mcp
+COCKROACHDB_MCP_API_KEY=your_service_account_api_secret
+COCKROACHDB_CLUSTER_ID=your_cluster_uuid
 
-* Incident type
-* Disaster severity
-* Failed assets
-* Cascading failures
-* Critical facilities affected
-* Specialist-agent recommendations
-* Agent disagreements
-* Recovery Commander recommendations
-* Human approval or rejection
-* Recovery actions
-* Restoration sequence
-* Final outcome
+# Recovery Commander LLM
+GROQ_API_KEY=your_groq_api_key
 
-This transforms previous simulated emergencies into reusable operational memory.
+# Vector embeddings
+GEMINI_API_KEY=your_gemini_api_key
 
----
-
-# Memory Retrieval
-
-During a future disaster, the Recovery Commander can retrieve relevant historical incidents before generating a recommendation.
-
-Conceptually:
-
-```text
-New Grid Emergency
-        |
-        v
-Current Incident Snapshot
-        |
-        v
-CockroachDB Incident Memory
-        |
-        v
-Retrieve Similar Historical Incidents
-        |
-        v
-Specialist Agent Analysis
-        |
-        v
-Recovery Commander Advisory
-        |
-        v
-Human Authorization
+# Optional frontend override
+VITE_GRID_MEMORY_API_URL=https://your-lambda-function-url/
 ```
 
-The purpose is not to allow historical decisions to automatically control the grid.
-
-Historical incidents provide **decision context** for the AI and human incident commander.
-
 ---
 
-# AWS + CockroachDB Architecture
+## CockroachDB Schema and Vector Index
 
-The original Grid Disaster AI prototype uses a React application, deterministic simulation logic, and a secure server-side LLM integration.
+The incident table requires an embedding column:
 
-For the CockroachDB/AWS extension, the target architecture is:
-
-```text
-React / TypeScript Command Center
-                |
-                v
-        Current Incident State
-                |
-                v
-          AWS Lambda
-      Agent Execution Layer
-                |
-        +-------+-------+
-        |               |
-        v               v
- CockroachDB          Groq LLM
-Persistent Memory     Advisory
-        |               |
-        +-------+-------+
-                |
-                v
-       Recovery Commander
-                |
-                v
-      Human Authorization
-                |
-                v
-    Deterministic Recovery
-                |
-                v
-     CockroachDB Writeback
+```sql
+ALTER TABLE incidents
+ADD COLUMN IF NOT EXISTS embedding VECTOR(384);
 ```
 
-AWS provides the server-side execution layer while CockroachDB provides durable incident and agent memory.
+GridRescue uses cosine distance (`<=>`), so the CockroachDB vector index should use the cosine operator class.
 
----
+For a non-empty table, CockroachDB may require safe updates to be disabled while the vector index is backfilled:
 
-# Why AWS Lambda?
-
-AWS Lambda provides a lightweight serverless execution layer for the agent workflow.
-
-Benefits include:
-
-* No continuously running application server required
-* Low infrastructure overhead
-* Pay-per-use execution
-* Secure server-side API access
-* Environment-variable protection
-* Simple integration with the React frontend
-* Suitable architecture for event-driven agent workflows
-
-The browser never needs direct access to protected LLM or database credentials.
-
----
-
-# Why CockroachDB?
-
-Emergency-response memory needs to survive individual browser sessions and individual AI calls.
-
-CockroachDB provides persistent distributed storage for:
-
-* Incident histories
-* Agent state
-* Recommendations
-* Human decisions
-* Recovery actions
-* Outcomes
-* Searchable operational memory
-
-The database therefore becomes part of the AI reasoning workflow rather than simply serving as application storage.
-
----
-
-# Planned Memory Workflow
-
-Each disaster follows a continuous memory cycle:
-
-```text
-OBSERVE
-   |
-   v
-RETRIEVE MEMORY
-   |
-   v
-ANALYZE
-   |
-   v
-AGENTS DELIBERATE
-   |
-   v
-RECOMMEND
-   |
-   v
-HUMAN AUTHORIZES
-   |
-   v
-ACT
-   |
-   v
-STORE OUTCOME
-   |
-   +--------------------+
-                        |
-                        v
-                 FUTURE INCIDENT
+```sql
+SET sql_safe_updates = false;
 ```
 
-The goal is for the system to become more context-aware as additional incidents are simulated.
+Create the distributed vector index:
+
+```sql
+CREATE VECTOR INDEX idx_incidents_embedding
+ON incidents (embedding vector_cosine_ops);
+```
+
+If vector indexing is not already enabled for the cluster/version, enable it first:
+
+```sql
+SET CLUSTER SETTING feature.vector_index.enabled = true;
+```
+
+Verify the index exists before the final hackathon demo:
+
+```sql
+SHOW INDEXES FROM incidents;
+```
+
+The output should include `idx_incidents_embedding`.
 
 ---
 
-# Fail-Safe Design
+## Lambda Routes
 
-The LLM is deliberately non-critical to core application execution.
+### Store an incident
 
-If the external LLM service fails, Grid Disaster AI can continue using deterministic Recovery Commander logic.
+`POST /`
 
-The LLM can never:
+Persists the incident and its Gemini-generated 384-dimensional embedding in CockroachDB.
 
-* Authorize recovery
-* Directly execute grid actions
-* Change simulation metrics
-* Modify grid assets without application logic
-* Bypass human confirmation
-* Determine whether recovery authorization is enabled
+### Retrieve/search memory
 
-The deterministic simulation remains the authoritative fail-safe.
+`GET /?query=<incident description>`
 
----
+Embeds the query and retrieves semantically similar historical incidents using CockroachDB vector similarity search.
 
-# Recovery Strategy
+### Recovery Commander advisory
 
-A representative recovery plan may include:
+`POST /advisory`
 
-1. Deploy mobile generation to Saint Anne Medical Center
-2. Preserve service to North Water Treatment Plant
-3. Isolate the damaged coastal transmission corridor
-4. Reroute available power through Central Substation
-5. Dispatch Crew Alpha to East Junction
-6. Dispatch Crew Bravo to Harbor Line 4
-7. Reduce noncritical industrial demand
-8. Issue emergency public alerts
-9. Continuously reassess grid stability
-10. Store the incident, decisions, and outcome in persistent memory
+Combines the current snapshot, vector-retrieved historical incidents, and CockroachDB MCP context before calling Groq.
 
 ---
 
-# Incident Timeline
+## Live Verification Completed
 
-The Incident Timeline records significant operational events including:
+The AWS Lambda test flow has verified:
 
-* Initial disaster
-* Asset failures
-* Cascading impacts
-* Forecast updates
-* Critical-infrastructure risk
-* Specialist recommendations
-* Agent disagreement
-* Historical-memory retrieval
-* Recovery Commander advisory
-* Human authorization
-* Crew deployments
-* Infrastructure protection
-* Recovery actions
-* Stabilization
-* Incident-memory writeback
+- incident persistence returns HTTP `200`
+- embeddings are generated and stored (`hasEmbedding: true`)
+- semantic vector retrieval returns matching historical incidents
+- the Recovery Commander successfully uses historical incident similarity context
+- MCP connects using Streamable HTTP
+- MCP tool discovery succeeds
+- MCP `select_query` executes successfully
+- Groq produces the final structured advisory
 
----
+The final MCP verification log included:
 
-# Application Views
-
-Grid Disaster AI contains five primary operational views:
-
-1. **Command Center**
-2. **Grid Network**
-3. **AI Coordination**
-4. **Recovery Plan**
-5. **Incident Timeline**
-
-Shared application state is preserved while navigating between operational views.
+```text
+Selected MCP Tool: select_query
+MCP Call succeeded for tool: select_query
+```
 
 ---
 
-# Technology Stack
+## Demo Guidance
 
-## Frontend
+The demo should make the agentic-memory contribution unmistakable:
 
-* React
-* TypeScript
-* Vite
-* Interactive SVG-style grid visualization
-
-## Agent and Simulation Layer
-
-* Deterministic grid-disaster simulation
-* Cascading failure forecasting
-* Multi-agent decision workflow
-* Human-in-the-loop authorization
-* Recovery Commander coordination
-
-## AI
-
-* Groq API
-* OpenAI-compatible inference
-* Live Recovery Commander advisory
-
-## Cloud Extension
-
-* AWS
-* AWS Lambda
-
-## Persistent Memory
-
-* CockroachDB
-* Structured incident history
-* Agent decision persistence
-* Historical incident retrieval
+1. Trigger the Category 4 Hurricane simulation.
+2. Show the cascade and specialist-agent disagreement.
+3. Open AI Coordination and show the live Recovery Commander advisory.
+4. Point out that the advisory is using a **similar historical incident** retrieved through CockroachDB vector search.
+5. Explain that CockroachDB MCP gives the agent live read-only access to incident context through `select_query`.
+6. Show the mandatory human authorization step.
+7. Authorize recovery and show the grid stabilize.
+8. Briefly show Incident Timeline / persistent memory if time permits.
 
 ---
 
-# Security
+## Technology Stack
 
-Sensitive credentials must remain server-side.
+### Frontend
 
-API keys and database credentials should never be:
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
 
-* Embedded in React source code
-* Exposed in browser JavaScript
-* Committed to GitHub
-* Returned in API responses
+### Backend / Cloud
 
-AWS Lambda environment variables or equivalent protected secret-management mechanisms are used for server-side credentials.
+- AWS Lambda
+- Node.js
+- CockroachDB Cloud
+- `pg`
 
----
+### Agentic AI / Memory
 
-# Reset and Reproducibility
-
-**RESET SIMULATION** restores the system to its normal monitoring state.
-
-Representative reset values include:
-
-* Status: MONITORING
-* Clock: 00:00
-* Grid Stability: 96%
-* Customers Without Power: 0
-* Facilities at Risk: 0
-* Cascade Probability: 2%
-* Normal grid asset states
-* Cleared forecasts
-* Cleared risk rankings
-* Cleared active LLM advisory
-
-Persistent historical incident records may remain available in CockroachDB so previous simulations can serve as future agent memory.
-
-This provides both:
-
-**reproducible simulation state**
-
-and
-
-**persistent historical memory**.
+- CockroachDB `VECTOR(384)`
+- CockroachDB Distributed Vector Indexing
+- CockroachDB Cloud Managed MCP Server
+- Model Context Protocol TypeScript SDK
+- Gemini `gemini-embedding-001`
+- Groq `llama-3.3-70b-versatile`
 
 ---
 
-# QA
+## Reliability and Safety
 
-Core application testing covers:
-
-* Disaster simulation
-* Cascading failures
-* Forecasting
-* Critical-infrastructure ranking
-* Grid filters
-* Asset details
-* Navigation state preservation
-* Specialist-agent coordination
-* Agent disagreement
-* Recovery Commander advisory
-* Human authorization
-* Recovery execution
-* STABILIZED state
-* Reset behavior
-
-AWS and CockroachDB integration tests will additionally verify:
-
-* Lambda invocation
-* Database connectivity
-* Incident-memory writes
-* Historical-memory retrieval
-* Failure handling
-* Credential protection
-
-See:
-
-`docs/QA_CHECKLIST.md`
+- Embedding failures are handled rather than silently inserting malformed vectors.
+- The embedding dimension is checked before database use.
+- MCP failure is non-fatal so the Recovery Commander can continue with available snapshot/vector context.
+- Historical memory is advisory context, not an autonomous control signal.
+- Recovery remains behind an explicit human authorization gate.
 
 ---
 
-# Demo
+## Security
 
-The demonstration is designed to tell one clear story:
-
-**A hurricane damages the grid → failures begin cascading → hospitals and infrastructure become threatened → specialist agents disagree → previous incident memory is retrieved → the Recovery Commander proposes a strategy → a human authorizes it → recovery begins → the outcome becomes memory for the next emergency.**
-
-The presentation sequence is documented in:
-
-`docs/DEMO.md`
+- API keys and database credentials are provided through Lambda environment variables.
+- Secrets should never be committed to GitHub or included in demo screenshots.
+- The MCP service account should use only the permissions required for the demo.
+- MCP access used by GridRescue is read-only through `select_query`.
 
 ---
 
-# Prior Work and Hackathon Development
+## Repository
 
-Grid Disaster AI began as a pre-existing grid-disaster simulation and human-governed multi-agent decision-support prototype.
-
-The original system already included:
-
-* React command-center interface
-* Grid simulation
-* Cascading failure logic
-* Critical-infrastructure prioritization
-* Specialist agents
-* Recovery Commander logic
-* Human authorization
-* Live Groq advisory
-* Recovery workflow
-
-The CockroachDB/AWS hackathon extension introduces new cloud and persistent-agent-memory capabilities, including:
-
-* AWS-hosted agent execution
-* CockroachDB persistent incident memory
-* Historical incident retrieval
-* Persistent agent decisions
-* Recovery-outcome storage
-* Memory-informed future recommendations
-
-This section is included to clearly distinguish the pre-existing prototype from work developed specifically for the hackathon extension.
+GitHub: https://github.com/draculess99/gridrescue-ai
 
 ---
 
-# Project Philosophy
+## Safety and Scope
 
-Grid Disaster AI is based on three principles.
-
-### Predict the cascade.
-
-Emergency systems should anticipate secondary failures rather than react only to assets that have already failed.
-
-### Protect the critical.
-
-Hospitals, water, communications, shelters, and life-safety infrastructure must remain visible throughout recovery planning.
-
-### Keep humans accountable.
-
-AI recommendations can improve situational awareness and coordination, but high-impact infrastructure decisions require explicit human authorization.
-
----
-
-# Safety and Scope
-
-Grid Disaster AI is a research and hackathon prototype intended to demonstrate AI-assisted emergency decision support.
-
-It does **not** control real electrical infrastructure.
-
-It should not be used for real-world emergency operations without:
-
-* Engineering validation
-* Production-grade operational data
-* Cybersecurity controls
-* Utility-system integration
-* Extensive testing
-* Human operational procedures
-* Regulatory review
-* Appropriate safety certification
-
----
-
-## Status
-
-**Current:** Working Grid Disaster AI simulation with multi-agent coordination, deterministic recovery logic, human authorization, and live LLM advisory.
-
-**In Development:** AWS Lambda execution and CockroachDB persistent incident memory.
-
-**Next Milestone:** Complete the full incident-memory loop:
-
-**Retrieve → Analyze → Recommend → Human Authorize → Recover → Store Outcome**
-
----
-
-**Grid Disaster AI**
-
-**Predict the cascade. Protect the critical. Restore the grid.**
+GridRescue AI is a research and hackathon prototype intended to demonstrate AI-assisted emergency decision support. It does **not** control real electrical infrastructure.

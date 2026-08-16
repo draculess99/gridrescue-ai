@@ -67,13 +67,18 @@ export interface IncidentMemoryResponse {
   error?: string;
 }
 
-export async function getIncidentMemory(): Promise<IncidentMemoryResponse> {
+export async function getIncidentMemory(query?: string): Promise<IncidentMemoryResponse> {
   if (!MEMORY_API_URL) {
     throw new Error("VITE_GRID_MEMORY_API_URL is not configured");
   }
 
-  const response = await fetch(MEMORY_API_URL, {
-    method: "GET"
+  const url = new URL(MEMORY_API_URL);
+  if (query) {
+    url.searchParams.set("query", query);
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
   });
 
   const data: IncidentMemoryResponse = await response.json();

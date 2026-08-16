@@ -15,7 +15,7 @@ export default function Sidebar() {
     <aside className="w-[220px] min-w-[220px] h-screen bg-[#060b14] border-r border-[#1e3a5f] flex flex-col select-none">
       {/* App title */}
       <div className="px-4 pt-5 pb-3 border-b border-[#1e3a5f]/50">
-        <h1 className="text-[#3b82f6] text-sm font-bold tracking-wider">GRID DISASTER</h1>
+        <h1 className="text-[#3b82f6] text-sm font-bold tracking-wider">GRIDRESCUE AI</h1>
         <h2 className="text-[#3b82f6] text-sm font-bold tracking-wider">AI</h2>
         <p className="text-[#64748b] text-[10px] mt-1 leading-tight">
           Predict the cascade.<br />

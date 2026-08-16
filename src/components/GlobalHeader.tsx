@@ -19,7 +19,7 @@ export default function GlobalHeader() {
   return (
     <header className="h-[52px] min-h-[52px] bg-[#060b14] border-b border-[#1e3a5f] flex items-center px-5 gap-4 select-none">
       {/* Title */}
-      <span className="text-[#3b82f6] font-bold text-sm tracking-widest mr-2">GRID DISASTER AI</span>
+      <span className="text-[#3b82f6] font-bold text-sm tracking-widest mr-2">GRIDRESCUE AI</span>
 
       <div className="h-4 w-px bg-[#1e3a5f]" />
 

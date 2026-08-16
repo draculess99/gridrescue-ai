@@ -485,7 +485,7 @@ export function simulationReducer(state: SimulationState, action: SimulationActi
 
             addTimelineEntry(newState, 'RECOVERY', 'Grid stability improving — all systems nominal', `Grid stability at ${newState.gridStability}%.`);
             addTimelineEntry(newState, 'RECOVERY', 'Critical infrastructure protected — all major facilities', 'All hospitals, water treatment, and communications facilities secure.');
-            addTimelineEntry(newState, 'RECOVERY', 'Incident stabilized — grid restored to safe operating parameters', 'Grid Disaster AI successfully coordinated recovery operations.');
+            addTimelineEntry(newState, 'RECOVERY', 'Incident stabilized — grid restored to safe operating parameters', 'GridRescue AI successfully coordinated recovery operations.');
           }
         }
 

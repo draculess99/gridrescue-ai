@@ -20,7 +20,7 @@ export default function CommandCenter() {
       {/* Header */}
       <div>
         <h1 className="text-lg font-bold text-[#e2e8f0] tracking-wide">COMMAND CENTER</h1>
-        <p className="text-xs text-[#64748b] mt-0.5">Grid Disaster Incident Management</p>
+        <p className="text-xs text-[#64748b] mt-0.5">GridRescue AI Incident Management</p>
       </div>
 
       {/* Scenario Control Panel */}

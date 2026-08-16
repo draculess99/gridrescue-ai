@@ -1,4 +1,4 @@
-Grid Disaster AI — 3-Minute Demo Runbook
+GridRescue AI — 3-Minute Demo Runbook
 
 Demo Goal
 
@@ -38,7 +38,7 @@ Start on Command Center.
 
 Say:
 
-“Grid Disaster AI is a human-governed emergency command center for cascading electrical-grid disasters. A localized failure can threaten hospitals, water systems, communications, and hundreds of thousands of people within minutes.”
+“GridRescue AI is a human-governed emergency command center for cascading electrical-grid disasters. A localized failure can threaten hospitals, water systems, communications, and hundreds of thousands of people within minutes.”
 
 Point out:
 
@@ -64,7 +64,7 @@ Click RUN DISASTER SIMULATION.
 
 Say:
 
-“A Category 4 hurricane damages the coastal transmission corridor. Grid Disaster AI now models how that initial failure propagates through the interconnected grid.”
+“A Category 4 hurricane damages the coastal transmission corridor. GridRescue AI now models how that initial failure propagates through the interconnected grid.”
 
 0:45–1:10 — Show the Cascade
 
@@ -198,7 +198,7 @@ Say:
 
 “Every prediction, specialist recommendation, live LLM advisory, human decision, and recovery action is auditable.
 
-Grid Disaster AI: Predict the cascade. Protect the critical. Restore the grid.”
+GridRescue AI: Predict the cascade. Protect the critical. Restore the grid.”
 
 What Judges Should Remember
 
@@ -220,13 +220,13 @@ Architecture Line for Q&A
 
 If asked how the AI works:
 
-“Grid Disaster AI combines a deterministic grid simulation and specialist-agent layer with one live Groq inference per disaster. The incident snapshot is sent through a Supabase Edge Function so the Groq API key stays server-side. The live advisory is cached for the incident, and the deterministic Recovery Commander remains the fail-safe. Only a human can authorize recovery.”
+“GridRescue AI combines a deterministic grid simulation and specialist-agent layer with one live Groq inference per disaster. The incident snapshot is sent through a Supabase Edge Function so the Groq API key stays server-side. The live advisory is cached for the incident, and the deterministic Recovery Commander remains the fail-safe. Only a human can authorize recovery.”
 
 Fail-Safe Line for Q&A
 
 If asked what happens when the LLM fails:
 
-“The live LLM is non-critical. If Groq or the network is unavailable, Grid Disaster AI immediately continues with the deterministic Recovery Commander. The AI advisory never controls execution.”
+“The live LLM is non-critical. If Groq or the network is unavailable, GridRescue AI immediately continues with the deterministic Recovery Commander. The AI advisory never controls execution.”
 
 Recording Safety Checklist
 
