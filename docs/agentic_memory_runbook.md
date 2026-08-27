@@ -1,6 +1,6 @@
 # Agentic Memory Runbook (Implementation Guide)
 
-![Agentic Memory Architecture Diagram](C:\Users\draculess99\.gemini\antigravity-ide\brain\f12ea7ab-d4c3-4528-bc52-eb6ccde3ea86\arch_diagram_1787818674182.jpg)
+![Agentic Memory Architecture Diagram](images/arch_diagram_1787818674182.jpg)
 
 > [!TIP]
 > This runbook abstracts the "Agentic Memory" architecture used in GridRescue AI so you can apply it to **any** project requiring an AI agent that remembers historical context and queries live data. It includes Node.js snippets for AWS Lambda.
@@ -25,7 +25,7 @@ npm install pg @google/generative-ai groq-sdk @modelcontextprotocol/sdk
 
 ## 2. Database Schema Setup
 
-![Vector Database Schema Illustration](C:\Users\draculess99\.gemini\antigravity-ide\brain\f12ea7ab-d4c3-4528-bc52-eb6ccde3ea86\vector_schema_1787818683898.jpg)
+![Vector Database Schema Illustration](images/vector_schema_1787818683898.jpg)
 
 Determine your embedding model's output dimension (Gemini `gemini-embedding-001` outputs 384 dimensions).
 
@@ -87,7 +87,7 @@ await pool.query(
 
 ## 4. The "Read" Path: Semantic Retrieval
 
-![Cosine Similarity Vector Search Concept](C:\Users\draculess99\.gemini\antigravity-ide\brain\f12ea7ab-d4c3-4528-bc52-eb6ccde3ea86\cosine_search_1787818693913.jpg)
+![Cosine Similarity Vector Search Concept](images/cosine_search_1787818693913.jpg)
 
 When the agent faces a new situation, recall *similar* past situations using Cosine Distance (`<=>`).
 
@@ -116,7 +116,7 @@ const historicalMemories = result.rows; // Pass these to your LLM
 
 ## 5. Live Context via MCP
 
-![Live Data Stream via Model Context Protocol](C:\Users\draculess99\.gemini\antigravity-ide\brain\f12ea7ab-d4c3-4528-bc52-eb6ccde3ea86\mcp_context_1787818704774.jpg)
+![Live Data Stream via Model Context Protocol](images/mcp_context_1787818704774.jpg)
 
 Vector search finds *historical* patterns. Use MCP for the exact status of the system *right now*.
 
@@ -184,7 +184,7 @@ const actionPlan = JSON.parse(completion.choices[0].message.content);
 
 ## 7. Safety & "Human-in-the-Loop"
 
-![Human Authorization Dashboard](C:\Users\draculess99\.gemini\antigravity-ide\brain\f12ea7ab-d4c3-4528-bc52-eb6ccde3ea86\human_auth_1787818714734.jpg)
+![Human Authorization Dashboard](images/human_auth_1787818714734.jpg)
 
 > [!IMPORTANT]
 > **Never allow the LLM to execute actions autonomously.**
