@@ -375,6 +375,12 @@ GitHub: https://github.com/draculess99/gridrescue-ai
 
 ---
 
+## Documentation
+
+- [Agentic Memory Runbook (Implementation Guide)](docs/agentic_memory_runbook.md)
+
+---
+
 ## Safety and Scope
 
 GridRescue AI is a research and hackathon prototype intended to demonstrate AI-assisted emergency decision support. It does **not** control real electrical infrastructure.
